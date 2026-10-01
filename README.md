@@ -26,11 +26,11 @@ Unpaid requests receive **HTTP 402** with x402 `paymentRequirements` (Algorand M
 - [x] `extra.tag: "x402-global-challenge"`
 - [x] Bazaar discovery extension (`declareDiscoveryExtension`) + merchant identity
 - [x] Env: `X402_PAY_TO` / `AVM_ADDRESS`, price, ASA, facilitator
-- [ ] Set real **MainNet** `X402_PAY_TO` wallet (opted into USDC `31566704`)
-- [ ] Deploy public **HTTPS** endpoint (Railway / Fly / Vercel)
+- [x] MainNet **`X402_PAY_TO`** merchant address documented (set in host env; opted into USDC `31566704`): `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`
+- [x] Public **HTTPS** deploy instructions (Vercel primary — see [Deploy](#deploy); live URL pending human project create)
 - [ ] Complete **one** real MainNet settle via GoPlausible (USDC lands in payTo)
 - [ ] Confirm listing in Bazaar + leaderboard (`SOURCE=X402-GLOBAL-CHALLENGE`)
-- [ ] Submit / note for Electric Capital (see below)
+- [x] Challenge form submitted (Electric Capital / entry form); re-notify with HTTPS URL after first settle if needed
 
 ---
 
@@ -157,29 +157,70 @@ See [`.env.example`](./.env.example).
 
 ---
 
-## Deploy notes
+## Deploy
 
-Needs a public **HTTPS** URL for facilitator Doctor, Bazaar refresh, and challenge tracking.
+Needs a public **HTTPS** API URL for facilitator Doctor, Bazaar refresh, and challenge tracking.
+
+> **Marketing site ≠ API host.** https://metacampus-on-algorand.grok.me is the product / landing site only. It does **not** serve `POST /v1/credential/verify`. Deploy this repo to **Vercel** (or Railway/Fly) for the paid API.
+
+Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts` (skips `listen` when `VERCEL` is set) + [`vercel.json`](./vercel.json) (`maxDuration` 60s).
+
+### Vercel (recommended — one-click from GitHub)
+
+1. Open [vercel.com/new](https://vercel.com/new) and **Import** `metacampus-org/metacampus-x402-verify` (GitHub).
+2. Framework preset: leave default / Other. Root directory: `.` Build Command: `npm run build` (or leave Vercel auto). Output is unused for this Express entry — Vercel runs `src/index.ts` as a Function.
+3. **Environment Variables** (Production) — paste before first deploy:
+
+| Name | Value |
+| --- | --- |
+| `X402_PAY_TO` | `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` |
+| `ALLOW_MOCK_PAYMENT` | `false` |
+| `ALGORAND_NETWORK` | `mainnet` |
+| `USDC_ASA` | `31566704` |
+| `FACILITATOR_URL` | `https://facilitator.goplausible.xyz` |
+| `X402_CHALLENGE_TAG` | `x402-global-challenge` |
+| `X402_PRICE_USDC` | `0.01` |
+| `MERCHANT_NAME` | `metaCAMPUS Credential Verify` |
+| `MERCHANT_WEBSITE` | `https://metacampus-on-algorand.grok.me` |
+| `MERCHANT_CATEGORIES` | `api,algorand,x402,credentials,education` |
+
+Do **not** add private keys / mnemonics. Settlement goes through GoPlausible; `X402_PAY_TO` is a public receive address only.
+
+4. Deploy → copy the HTTPS host (e.g. `https://metacampus-x402-verify.vercel.app`).
+5. **Smoke test (unpaid → 402):**
+
+```bash
+curl -si -X POST https://YOUR_VERCEL_HOST/v1/credential/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
+```
+
+Expect `HTTP/1.1 402` (or `402`) with x402 `paymentRequirements`, `extra.tag: x402-global-challenge`, USDC ASA `31566704`, and `payTo` matching `X402_PAY_TO`.
+
+6. Optional: `GET https://YOUR_VERCEL_HOST/health` → `ok: true`, `payToConfigured: true`.
+7. Paste the verify URL into GoPlausible Doctor, then run **one** real MainNet settle with an x402 client.
+
+Live project create / Vercel login is a human/CoS step; this repo is import-ready once env is set.
 
 ### Railway
 
 1. New project from this GitHub repo.
-2. Root start: `npm run build && npm start` (or set Build = `npm run build`, Start = `npm start`).
-3. Set env: `X402_PAY_TO`, `FACILITATOR_URL`, `ALGORAND_NETWORK=mainnet`, `PORT` (Railway injects).
-4. Generate HTTPS domain → probe with unpaid `curl` (expect 402).
+2. Build = `npm run build`, Start = `npm start` (or `Dockerfile` / `Procfile`).
+3. Set the same env vars as the Vercel table (`PORT` is injected by Railway).
+4. HTTPS domain → unpaid `curl` (expect 402).
 
 ### Fly.io
 
 ```bash
 fly launch --name metacampus-x402-verify --no-deploy
-# Dockerfile or use Node buildpack; set secrets:
-fly secrets set X402_PAY_TO=… FACILITATOR_URL=https://facilitator.goplausible.xyz
+fly secrets set X402_PAY_TO=I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE \
+  FACILITATOR_URL=https://facilitator.goplausible.xyz \
+  ALLOW_MOCK_PAYMENT=false ALGORAND_NETWORK=mainnet USDC_ASA=31566704 \
+  X402_CHALLENGE_TAG=x402-global-challenge
 fly deploy
 ```
 
-### Vercel
-
-Express on Vercel works via a serverless wrapper or long-running alternative (Railway/Fly preferred for a simple always-on 402 API). If using Vercel, export the Express app and add `vercel.json` rewrites; ensure unpaid requests still return **402 before** body validation.
+Then unpaid `curl` against the Fly HTTPS URL (expect 402).
 
 ---
 
@@ -222,18 +263,18 @@ After HTTPS is live and **one** MainNet payment has settled:
 | Works in this scaffolding | Still TODO for humans |
 | --- | --- |
 | 402 unpaid via `@x402/express` + Exact AVM scheme | Fund + opt-in MainNet payTo wallet to USDC |
-| Challenge tag + Bazaar + merchant extensions | Deploy HTTPS |
+| Challenge tag + Bazaar + merchant extensions + Vercel wiring | Human: create Vercel project + first settle |
 | GoPlausible facilitator client URL | One real settle with an x402 client |
 | Mock verify response after payment / mock header | Replace mock verify with on-chain / registry truth |
 | `npm install` + `npm run build` | Leaderboard + Electric Capital submit |
 
 ### Exact next human steps
 
-1. Create/fund MainNet Algorand address → opt in ASA `31566704` → set `X402_PAY_TO`.
-2. Deploy this repo to Railway/Fly with HTTPS.
-3. `curl` unpaid → confirm 402 + tag + bazaar.
-4. Run one paid client call → confirm USDC received + Bazaar listing.
-5. Submit challenge entry / notify Electric Capital with the public repo + HTTPS URL.
+1. Confirm merchant `X402_PAY_TO` `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` is opted into USDC ASA `31566704`.
+2. Import this repo on **Vercel**, set Production env (table above), deploy HTTPS.
+3. Unpaid `curl` → confirm 402 + tag + `payTo` (do not use grok.me — that is marketing only).
+4. One real paid settle via GoPlausible → confirm USDC + Bazaar / leaderboard.
+5. Re-notify Electric Capital / update entry with the live HTTPS verify URL if needed (form already submitted).
 
 ---
 
