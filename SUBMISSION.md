@@ -19,7 +19,7 @@ Agents need a machine-payable way to **verify credentials** without API keys or 
 ### Unpaid curl (local or HTTPS)
 
 ```bash
-curl -si -X POST https://YOUR_HOST/v1/credential/verify \
+curl -si -X POST https://YOUR_VERCEL_HOST/v1/credential/verify \
   -H 'Content-Type: application/json' \
   -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
 ```
@@ -45,47 +45,61 @@ curl -s -X POST http://localhost:4021/v1/credential/verify \
 - **Facilitator:** GoPlausible `https://facilitator.goplausible.xyz`
 - **Challenge tag:** `x402-global-challenge` in `paymentRequirements.extra.tag`
 - **Bazaar:** `declareDiscoveryExtension` + `x402-merchant` on the paid route
+- **Merchant payTo:** `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`
 
 ## Env (production)
 
-Minimum for a real settle:
-
 ```bash
-X402_PAY_TO=<MainNet Algorand address opted into USDC 31566704>
+X402_PAY_TO=I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE
 FACILITATOR_URL=https://facilitator.goplausible.xyz
 ALGORAND_NETWORK=mainnet
 USDC_ASA=31566704
 X402_CHALLENGE_TAG=x402-global-challenge
 ALLOW_MOCK_PAYMENT=false
+X402_PRICE_USDC=0.01
+MERCHANT_NAME=metaCAMPUS Credential Verify
+MERCHANT_WEBSITE=https://metacampus-on-algorand.grok.me
+MERCHANT_CATEGORIES=api,algorand,x402,credentials,education
 ```
 
-Full list: [`.env.example`](./.env.example) and [README](./README.md#environment).
+Full list: [`.env.example`](./.env.example) and [README](./README.md#environment). No private keys in git or Vercel env.
 
 ## Deploy (HTTPS required)
 
-Facilitator Doctor, Bazaar refresh, and challenge tracking need a **public HTTPS** base URL.
+Facilitator Doctor, Bazaar refresh, and challenge tracking need a **public HTTPS API** base URL.
 
-- Prefer **Railway** or **Fly.io** (`npm run build` → `npm start`; see README Deploy notes / `Dockerfile` / `Procfile`).
-- After deploy: unpaid curl → confirm **402** + tag + discovery extensions.
+**https://metacampus-on-algorand.grok.me is marketing only** — it is not the x402 API host. Deploy this repo to **Vercel** (preferred) or Railway/Fly.
+
+### Vercel step-by-step
+
+1. [vercel.com/new](https://vercel.com/new) → Import `metacampus-org/metacampus-x402-verify`.
+2. Set Production env from the table in [README Deploy](./README.md#deploy) (`X402_PAY_TO`, `ALLOW_MOCK_PAYMENT=false`, MainNet USDC / facilitator / tag / merchant).
+3. Deploy → note `https://….vercel.app`.
+4. Unpaid curl (above) → expect **402** + tag + payTo.
+5. GoPlausible Doctor + one real MainNet settle.
+
+Repo includes `vercel.json` + Express `export default app` (no `listen` on Vercel). Human/CoS creates the Vercel project; docs are import-ready.
+
+Alternatives: Railway / Fly — see README. `Dockerfile` / `Procfile` unchanged.
 
 ## Electric Capital / challenge submit
 
-After HTTPS is live and **one** MainNet USDC payment has settled into `X402_PAY_TO`:
+Challenge **form already submitted**. After HTTPS is live and **one** MainNet USDC payment has settled into `X402_PAY_TO`:
 
 1. Confirm USDC received on the merchant wallet.
 2. Confirm Bazaar resource under **X402-GLOBAL-CHALLENGE**.
-3. Follow Algorand submit guide: https://algorand.co/blog/the-x402-global-challenge-is-live-how-to-build-submit-your-entry
-4. Materials to include:
+3. Update / re-notify with the live HTTPS verify URL if the form needs it: https://algorand.co/blog/the-x402-global-challenge-is-live-how-to-build-submit-your-entry
+4. Materials:
    - Repo: `https://github.com/metacampus-org/metacampus-x402-verify`
-   - Public HTTPS verify URL
+   - Public HTTPS verify URL (Vercel — pending deploy)
    - Demo video: https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view (Metacampus.mp4)
 
 ## Human next steps (blockers for “done”)
 
-1. Set real MainNet **`X402_PAY_TO`** (USDC ASA `31566704` opted in).
-2. Deploy public **HTTPS**.
+1. ~~Document MainNet `X402_PAY_TO`~~ → `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` (confirm USDC opt-in).
+2. ~~HTTPS deploy instructions~~ → create Vercel project from this repo + set env (not grok.me).
 3. Complete **one real settle** (not mock) via GoPlausible; confirm USDC + Bazaar listing.
-4. Submit / notify Electric Capital with repo + HTTPS URL + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
+4. Attach live HTTPS URL to Electric Capital / entry follow-up + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
 
 ## Demo video
 
