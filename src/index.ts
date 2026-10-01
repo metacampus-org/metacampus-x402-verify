@@ -212,18 +212,24 @@ app.post("/v1/credential/verify", (req, res) => {
   handleVerify(req, res);
 });
 
-app.listen(port, host, () => {
-  console.log(
-    `[metacampus-x402-verify] listening on http://${host}:${port}`,
-  );
-  console.log(`  network=${networkCaip2}`);
-  console.log(
-    `  usdcAsa=${usdcAsa} price=${priceDollarString()} (${priceAtomicUnits()} atomic)`,
-  );
-  console.log(`  payTo=${merchantPayTo.slice(0, 8)}…`);
-  console.log(`  facilitator=${facilitatorUrl}`);
-  console.log(`  tag=${challengeTag}`);
-  if (allowMockPayment) {
-    console.log(`  ALLOW_MOCK_PAYMENT=true (X-PAYMENT: mock)`);
-  }
-});
+/** Default export so Vercel detects Express at `src/index.ts`. */
+export default app;
+
+/** Local / Docker / Procfile: listen. On Vercel, skip listen (Fluid Function). */
+if (!process.env.VERCEL) {
+  app.listen(port, host, () => {
+    console.log(
+      `[metacampus-x402-verify] listening on http://${host}:${port}`,
+    );
+    console.log(`  network=${networkCaip2}`);
+    console.log(
+      `  usdcAsa=${usdcAsa} price=${priceDollarString()} (${priceAtomicUnits()} atomic)`,
+    );
+    console.log(`  payTo=${merchantPayTo.slice(0, 8)}…`);
+    console.log(`  facilitator=${facilitatorUrl}`);
+    console.log(`  tag=${challengeTag}`);
+    if (allowMockPayment) {
+      console.log(`  ALLOW_MOCK_PAYMENT=true (X-PAYMENT: mock)`);
+    }
+  });
+}
