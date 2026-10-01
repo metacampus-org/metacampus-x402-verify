@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic Credentialing | metaCAMPUS</title>
+  <meta name="description" content="AC is the agentic credentialing splash for metaCAMPUS. Paid hash checks are stubbed to a Vercel x402 service that can be spun up later. The marketing site does not serve the API.">
+  <meta name="theme-color" content="#101814">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:opsz,wght@7..72,500;7..72,600;7..72,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #101814;
+      --panel: #1a2620;
+      --line: #314238;
+      --paper: #f4f0e6;
+      --muted: #b3aa9a;
+      --brass: #c9a227;
+      --brass-hot: #ddb84a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    .skip {
+      position: absolute; left: 12px; top: 12px;
+      transform: translateY(-160%);
+      background: var(--brass); color: var(--ink);
+      border-radius: 999px; padding: 8px 16px; z-index: 50;
+    }
+    .skip:focus { transform: none; }
+    header {
+      position: sticky; top: 0; z-index: 40;
+      border-bottom: 1px solid rgba(49, 66, 56, 0.8);
+      background: rgba(16, 24, 20, 0.95);
+      backdrop-filter: blur(12px);
+    }
+    .bar, main, footer .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem; }
+    .bar { display: flex; align-items: center; justify-content: space-between; min-height: 4rem; gap: 1rem; }
+    .brand { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; font-weight: 600; }
+    .mark {
+      width: 2rem; height: 2rem; border-radius: 999px;
+      display: grid; place-items: center;
+      background: var(--brass); color: var(--ink); font-weight: 700; font-size: 0.8rem;
+    }
+    nav { display: flex; gap: 0.9rem; overflow-x: auto; font-size: 0.95rem; }
+    nav a { color: var(--muted); text-decoration: none; white-space: nowrap; min-height: 2.75rem; display: inline-flex; align-items: center; }
+    nav a[aria-current="page"], nav a:hover { color: var(--paper); }
+    .eyebrow { color: var(--brass); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; font-weight: 600; }
+    h1, h2 { font-family: Newsreader, Georgia, serif; font-weight: 560; letter-spacing: -0.02em; }
+    h1 { font-size: clamp(2.4rem, 8vw, 4.6rem); line-height: 0.95; margin: 0.4rem 0 1rem; }
+    h2 { font-size: 1.8rem; margin: 0 0 0.6rem; }
+    .lede { font-size: 1.12rem; max-width: 40rem; color: var(--paper); }
+    .muted { color: var(--muted); }
+    .hero { padding: 3.2rem 0 1.5rem; display: grid; gap: 1.5rem; }
+    .status {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 0.35rem 0.75rem; color: var(--brass-hot); font-size: 0.85rem;
+    }
+    .dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--brass); }
+    .grid { display: grid; gap: 0.9rem; }
+    @media (min-width: 800px) {
+      .hero { grid-template-columns: 1.3fr 0.7fr; align-items: end; }
+      .grid.cards { grid-template-columns: 1fr 1fr; }
+      .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      padding: 1.1rem 1.15rem;
+    }
+    .kicker { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.86rem; }
+    .stub { color: var(--brass-hot); }
+    ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+    li { margin: 0.25rem 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.2rem; }
+    .btn {
+      display: inline-flex; align-items: center; min-height: 2.75rem;
+      padding: 0.55rem 1rem; border-radius: 999px; text-decoration: none; font-weight: 600;
+    }
+    .btn.primary { background: var(--brass); color: var(--ink); }
+    .btn.ghost { border: 1px solid var(--line); color: var(--paper); }
+    section { padding: 1.2rem 0 2rem; }
+    footer { border-top: 1px solid var(--line); padding: 1.4rem 0 2rem; color: var(--muted); font-size: 0.92rem; }
+    footer a { color: var(--paper); }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <div class="bar">
+      <a class="brand" href="https://metacampus-on-algorand.grok.me/"><span class="mark">mC</span> metaCAMPUS</a>
+      <nav aria-label="Pages">
+        <a href="https://metacampus-on-algorand.grok.me/">Home</a>
+        <a href="https://metacampus-on-algorand.grok.me/hash">Hash</a>
+        <a href="https://metacampus-on-algorand.grok.me/badges">Badges</a>
+        <a href="https://metacampus-on-algorand.grok.me/outcomes">Outcomes</a>
+        <a href="https://metacampus-on-algorand.grok.me/registrars">Registrars</a>
+        <a href="https://metacampus-on-algorand.grok.me/check">Check</a>
+        <a href="https://metacampus-on-algorand.grok.me/stack">Stack</a>
+        <a href="https://metacampus-on-algorand.grok.me/story">Story</a>
+        <a href="https://metacampus-on-algorand.grok.me/mooa">MOOA</a>
+        <a href="./index.html" aria-current="page">AC</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <div class="bar hero">
+      <div>
+        <p class="eyebrow">AC · Agentic Credentialing</p>
+        <h1>A paid check for an agent, not another office queue.</h1>
+        <p class="lede">metaCAMPUS still anchors only a fingerprint. Agentic Credentialing is the x402 door on that fingerprint: an unpaid request gets HTTP 402, a settled MainNet USDC payment gets a credential-hash result.</p>
+        <p><span class="status"><span class="dot"></span> Vercel service stubbed · spin up later</span></p>
+        <div class="actions">
+          <a class="btn primary" href="https://github.com/metacampus-org/metacampus-x402-verify">x402 repository</a>
+          <a class="btn ghost" href="https://metacampus-x402-verify.vercel.app/health">Planned health stub</a>
+        </div>
+      </div>
+      <aside class="card">
+        <p class="kicker">Planned host</p>
+        <p class="mono">metacampus-x402-verify.vercel.app</p>
+        <p class="muted">Import-ready in the repo. No Vercel project has been created, so these URLs are stubs, not a live verifier.</p>
+      </aside>
+    </div>
+
+    <section>
+      <div class="bar">
+        <h2>What the new repo adds</h2>
+        <div class="grid three">
+          <article class="card">
+            <p class="kicker">Route</p>
+            <p><code>POST /v1/credential/verify</code></p>
+            <p class="muted">Body takes a credential hash. Optional credential id, issuer id, and transaction reference.</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Payment</p>
+            <p>HTTP 402 until USDC settles.</p>
+            <p class="muted">Algorand MainNet USDC ASA 31566704. Default price 0.01. Facilitator is GoPlausible.</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Boundary</p>
+            <p>This site is not the API.</p>
+            <p class="muted">metacampus-on-algorand.grok.me stays the product page. The paid route belongs on Vercel.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="bar">
+        <h2>Stubs for the service that is not up</h2>
+        <div class="grid cards">
+          <article class="card">
+            <p class="kicker">Free health</p>
+            <p class="mono stub">GET https://metacampus-x402-verify.vercel.app/health</p>
+            <p class="muted">Expect later: ok, payTo configured, no secrets. Today: host not spun up.</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Unpaid verify</p>
+            <p class="mono stub">POST https://metacampus-x402-verify.vercel.app/v1/credential/verify</p>
+            <p class="muted">Expect later: 402, scheme exact, extra.tag x402-global-challenge, payTo the public merchant address.</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Paid result</p>
+            <p>valid, hash, anchoredHash, txId, network, verifiedAt.</p>
+            <p class="muted">The repo still returns a scaffold result after payment. A real registry lookup is not wired.</p>
+          </article>
+          <article class="card">
+            <p class="kicker">Still human</p>
+            <ul>
+              <li>Create the Vercel project and set production env.</li>
+              <li>One real MainNet settle through GoPlausible.</li>
+              <li>Bazaar listing after that first settle.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap">
+      <p>AC splash for the metacampus-on-algorand.grok.me build. Service content follows <a href="https://github.com/metacampus-org/metacampus-x402-verify">metacampus-org/metacampus-x402-verify</a>. Challenge: <a href="https://algorand.co/global-x402-challenge">Algorand Global x402</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>
