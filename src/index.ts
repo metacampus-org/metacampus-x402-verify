@@ -138,31 +138,36 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/health", (_req, res) => {
+app.get("/health", (req, res) => {
   res.json({
     ok: true,
     service: "metacampus-x402-verify",
+    url: `${req.protocol}://${req.get("host")}`,
     network: networkCaip2,
     usdcAsa,
     price: priceDollarString(),
     priceAtomic: priceAtomicUnits(),
     payToConfigured: Boolean(payTo),
+    ...(payTo ? { payTo } : {}),
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
   });
 });
 
-app.get("/", (_req, res) => {
+app.get("/", (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
   res.json({
     name: "metaCAMPUS x402 Credential Verify",
     challenge: challengeTag,
+    url: base,
     endpoints: {
       health: "GET /health",
       verify: "POST /v1/credential/verify (x402 paid)",
     },
     docs: "https://github.com/metacampus-org/metacampus-x402-verify",
     facilitator: facilitatorUrl,
+    ...(payTo ? { payTo } : {}),
   });
 });
 
