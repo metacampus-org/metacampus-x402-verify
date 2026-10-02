@@ -14,6 +14,7 @@ Unpaid requests receive **HTTP 402** with x402 `paymentRequirements` (Algorand M
 | **Facilitator** | https://facilitator.goplausible.xyz |
 | **Challenge tag** | `x402-global-challenge` |
 | **Paid route** | `POST /v1/credential/verify` |
+| **API host (Hobby)** | https://metacampus-x402-verify.vercel.app |
 | **Demo video** | [Metacampus.mp4](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view) |
 
 ---
@@ -27,7 +28,7 @@ Unpaid requests receive **HTTP 402** with x402 `paymentRequirements` (Algorand M
 - [x] Bazaar discovery extension (`declareDiscoveryExtension`) + merchant identity
 - [x] Env: `X402_PAY_TO` / `AVM_ADDRESS`, price, ASA, facilitator
 - [x] MainNet **`X402_PAY_TO`** merchant address documented (set in host env; opted into USDC `31566704`): `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`
-- [x] Public **HTTPS** deploy instructions (Vercel primary — see [Deploy](#deploy); live URL pending human project create)
+- [x] Public **HTTPS** on Hobby: [https://metacampus-x402-verify.vercel.app](https://metacampus-x402-verify.vercel.app) (see [Deploy](#deploy))
 - [ ] Complete **one** real MainNet settle via GoPlausible (USDC lands in payTo)
 - [ ] Confirm listing in Bazaar + leaderboard (`SOURCE=X402-GLOBAL-CHALLENGE`)
 - [x] Challenge form submitted (Electric Capital / entry form); re-notify with HTTPS URL after first settle if needed
@@ -163,7 +164,9 @@ Needs a public **HTTPS** API URL for facilitator Doctor, Bazaar refresh, and cha
 
 > **Marketing site ≠ API host.** https://metacampus-on-algorand.grok.me is the product / landing site only. It does **not** serve `POST /v1/credential/verify`. Deploy this repo to **Vercel** (or Railway/Fly) for the paid API.
 
-Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts` (skips `listen` when `VERCEL` is set) + [`vercel.json`](./vercel.json) (`maxDuration` 60s — **Hobby-safe**; Hobby allows up to 300s).
+Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts` (skips `listen` when `VERCEL` is set), `app.set("trust proxy", 1)` so x402 `resource.url` is **https**, + [`vercel.json`](./vercel.json) (`maxDuration` 60s — **Hobby-safe**; Hobby allows up to 300s).
+
+**Live Hobby URL:** https://metacampus-x402-verify.vercel.app
 
 **Hobby free-tier checklist (before Import works):**
 
@@ -194,18 +197,18 @@ Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts
 
 Do **not** add private keys / mnemonics. Settlement goes through GoPlausible; `X402_PAY_TO` is a public receive address only.
 
-4. Deploy → copy the HTTPS host (e.g. `https://metacampus-x402-verify.vercel.app`).
+4. Deploy → HTTPS host is live: `https://metacampus-x402-verify.vercel.app` (redeploy after git push).
 5. **Smoke test (unpaid → 402):**
 
 ```bash
-curl -si -X POST https://YOUR_VERCEL_HOST/v1/credential/verify \
+curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify \
   -H 'Content-Type: application/json' \
   -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
 ```
 
 Expect `HTTP/1.1 402` (or `402`) with x402 `paymentRequirements`, `extra.tag: x402-global-challenge`, USDC ASA `31566704`, and `payTo` matching `X402_PAY_TO`.
 
-6. Optional: `GET https://YOUR_VERCEL_HOST/health` → `ok: true`, `payToConfigured: true`.
+6. Optional: `GET https://metacampus-x402-verify.vercel.app/health` → `ok: true`, `payToConfigured: true`.
 7. Paste the verify URL into GoPlausible Doctor, then run **one** real MainNet settle with an x402 client.
 
 Live project create / Vercel login is a human/CoS step; this repo is import-ready once env is set.
@@ -279,8 +282,8 @@ After HTTPS is live and **one** MainNet payment has settled:
 ### Exact next human steps
 
 1. Confirm merchant `X402_PAY_TO` `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` is opted into USDC ASA `31566704`.
-2. Import this repo on **Vercel**, set Production env (table above), deploy HTTPS.
-3. Unpaid `curl` → confirm 402 + tag + `payTo` (do not use grok.me — that is marketing only).
+2. ~~Import / deploy HTTPS~~ → live: https://metacampus-x402-verify.vercel.app (redeploy picks up `main`).
+3. ~~Unpaid smoke~~ → 402 confirmed; after `trust proxy` redeploy, confirm `resource.url` is `https://…`.
 4. One real paid settle via GoPlausible → confirm USDC + Bazaar / leaderboard.
 5. Re-notify Electric Capital / update entry with the live HTTPS verify URL if needed (form already submitted).
 
