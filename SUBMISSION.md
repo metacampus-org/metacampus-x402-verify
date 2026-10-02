@@ -4,6 +4,18 @@
 **Challenge:** [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge)  
 **Tag:** `x402-global-challenge` (Bazaar / leaderboard filter: `X402-GLOBAL-CHALLENGE`)
 
+## Competition status
+
+**Live API:** [https://metacampus-x402-verify.vercel.app](https://metacampus-x402-verify.vercel.app) · **payTo:** `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`  
+**Ready:** HTTPS + unpaid 402 smoke green. **Open:** one real MainNet GoPlausible settle → Bazaar/leaderboard.
+
+```bash
+curl -s https://metacampus-x402-verify.vercel.app/health | jq
+curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify \\
+  -H 'Content-Type: application/json' \\
+  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
+```
+
 ## Problem
 
 Agents need a machine-payable way to **verify credentials** without API keys or accounts. metaCAMPUS exposes credential-hash verification as an **x402-paid HTTPS API**: unpaid callers get **HTTP 402** with payment requirements; after MainNet USDC settlement via **GoPlausible**, the verify handler runs.
@@ -14,7 +26,7 @@ Agents need a machine-payable way to **verify credentials** without API keys or 
 | --- | --- |
 | Unpaid `POST /v1/credential/verify` | **HTTP 402** + `paymentRequirements` (exact scheme, MainNet, USDC ASA **31566704**, `extra.tag: x402-global-challenge`, Bazaar / merchant extensions) |
 | Paid request (x402 client or facilitator settle) | **200** JSON verify result (`valid`, `hash`, …) |
-| Health | Free `GET /health` |
+| Health | Free `GET /health` (includes public `url` + `payTo`) |
 
 ### Unpaid curl (local or HTTPS)
 
@@ -107,10 +119,9 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
 
 ## Human next steps (blockers for “done”)
 
-1. ~~Document MainNet `X402_PAY_TO`~~ → `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` (confirm USDC opt-in).
-2. ~~HTTPS~~ → https://metacampus-x402-verify.vercel.app (Hobby). Marketing site remains grok.me only.
-3. Complete **one real settle** (not mock) via GoPlausible; confirm USDC + Bazaar listing.
-4. Attach live HTTPS URL to Electric Capital / entry follow-up + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
+1. ~~payTo documented~~ `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` · ~~HTTPS~~ https://metacampus-x402-verify.vercel.app · ~~unpaid 402~~ green.
+2. **Do now:** one real MainNet settle via GoPlausible (not mock); confirm USDC + Bazaar / leaderboard.
+3. Re-notify Electric Capital / entry with live HTTPS URL if needed + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
 
 ## Demo video
 
