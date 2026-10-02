@@ -70,15 +70,26 @@ Facilitator Doctor, Bazaar refresh, and challenge tracking need a **public HTTPS
 
 **https://metacampus-on-algorand.grok.me is marketing only** — it is not the x402 API host. Deploy this repo to **Vercel** (preferred) or Railway/Fly.
 
+### Vercel Hobby checklist
+
+| Step | Detail |
+| --- | --- |
+| Tier | **Hobby (free)** — `vercel.json` `maxDuration: 60` is within Hobby limits |
+| GitHub link | Connect Vercel GitHub App to `metacampus-org` (empty Hobby team / import 403 = App not linked) |
+| Import | [vercel.com/new](https://vercel.com/new) → `metacampus-org/metacampus-x402-verify` |
+| Env (Production) | See table in [README Deploy](./README.md#deploy): `X402_PAY_TO=I4ZBH6…`, `ALLOW_MOCK_PAYMENT=false`, MainNet, ASA `31566704`, facilitator, tag, `MERCHANT_*` — **no private keys** |
+| Deploy | Use the real `*.vercel.app` host Vercel returns (do not invent URLs) |
+| Smoke | Unpaid curl below → **HTTP 402** + tag + payTo |
+
 ### Vercel step-by-step
 
-1. [vercel.com/new](https://vercel.com/new) → Import `metacampus-org/metacampus-x402-verify`.
+1. Connect GitHub → Vercel, then [vercel.com/new](https://vercel.com/new) → Import `metacampus-org/metacampus-x402-verify` on Hobby.
 2. Set Production env from the table in [README Deploy](./README.md#deploy) (`X402_PAY_TO`, `ALLOW_MOCK_PAYMENT=false`, MainNet USDC / facilitator / tag / merchant).
-3. Deploy → note `https://….vercel.app`.
+3. Deploy → note the real `https://….vercel.app` URL.
 4. Unpaid curl (above) → expect **402** + tag + payTo.
 5. GoPlausible Doctor + one real MainNet settle.
 
-Repo includes `vercel.json` + Express `export default app` (no `listen` on Vercel). Human/CoS creates the Vercel project; docs are import-ready.
+Repo includes `vercel.json` + Express `export default app` (no `listen` on Vercel). Human/CoS creates the Vercel project after GitHub App link; docs are import-ready.
 
 Alternatives: Railway / Fly — see README. `Dockerfile` / `Procfile` unchanged.
 
