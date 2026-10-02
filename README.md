@@ -147,10 +147,18 @@ Bazaar / Universal Client **browse** listing appears only **after** the first su
 
 ### Option A — `@x402/fetch` (Node) or Pera via wallet signer
 
-`wrapFetchWithPayment` + `ExactAvmScheme` on MainNet CAIP-2.
+Runnable example (no secrets in git): [`examples/settle-client`](./examples/settle-client).
 
-- **Node / script:** `AVM_PRIVATE_KEY` (never commit) → `paidFetch` at the URL above.
-- **Browser + Pera / Lute:** `ClientAvmSigner` from `@txnlab/use-wallet` into `ExactAvmScheme` ([Wallet as the signer](https://facilitator.goplausible.xyz/guide)).
+```bash
+cd examples/settle-client
+cp env.example .env   # AVM_PRIVATE_KEY or AVM_MNEMONIC locally only
+npm install && npm run settle
+```
+
+`wrapFetchWithPayment` + `ExactAvmScheme` on MainNet CAIP-2 `algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=`.
+
+- **Node / script:** `AVM_PRIVATE_KEY` or `AVM_MNEMONIC` (never commit) → `npm run settle`.
+- **Browser + Pera / Lute:** sketch in [`examples/settle-client/pera-wallet.md`](./examples/settle-client/pera-wallet.md) (`ClientAvmSigner` from `@txnlab/use-wallet`, [Wallet as the signer](https://facilitator.goplausible.xyz/guide)).
 
 Reference: [algorandfoundation/x402-demo client](https://github.com/algorandfoundation/x402-demo/blob/main/x402-basic-tutorial/client/index.ts) (MainNet + ASA `31566704`).
 
