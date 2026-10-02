@@ -119,6 +119,9 @@ const paidRoutes = {
 
 const app = express();
 
+// Vercel / reverse proxies terminate TLS; needed so x402 resource.url is https://
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: "256kb" }));
 
 app.use((req, res, next) => {
