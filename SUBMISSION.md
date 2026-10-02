@@ -7,7 +7,7 @@
 ## Competition status
 
 **Live API:** [https://metacampus-x402-verify.vercel.app](https://metacampus-x402-verify.vercel.app) · **payTo:** `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`  
-**Ready:** HTTPS + unpaid 402 smoke green. **Open:** one real MainNet GoPlausible settle → Bazaar/leaderboard.
+**Ready:** HTTPS + unpaid 402 smoke green. **Open:** one real MainNet GoPlausible settle (known URL; Bazaar not required first) → then Bazaar/leaderboard.
 
 ```bash
 curl -s https://metacampus-x402-verify.vercel.app/health | jq
@@ -38,7 +38,7 @@ curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify 
 
 ### Paid path
 
-Use `@x402/fetch` + `@x402/avm` against the public HTTPS URL (see README). Facilitator: https://facilitator.goplausible.xyz — guide: https://facilitator.goplausible.xyz/guide
+Use `@x402/fetch` + `@x402/avm` (or MCP) against the public HTTPS URL — see [Unlisted first settle](#unlisted-first-settle-bazaar-not-required) and README. Facilitator: https://facilitator.goplausible.xyz — guide: https://facilitator.goplausible.xyz/guide
 
 Local-only mock (not for challenge credit):
 
@@ -49,6 +49,30 @@ curl -s -X POST http://localhost:4021/v1/credential/verify \
   -H 'X-PAYMENT: mock' \
   -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
 ```
+
+## Unlisted first settle (Bazaar not required)
+
+Listing in GoPlausible Bazaar / Universal Client browse happens **after** the first successful MainNet settle. Pay the known URL directly — do not wait for discovery.
+
+**Payer prereqs:** MainNet account · USDC ASA **`31566704`** opt-in · ≥ `$0.01` USDC.
+
+**Request:**
+
+```bash
+# Unpaid probe (expect 402) — then settle with an x402 client (not plain curl)
+curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
+```
+
+**Settle clients:**
+
+1. `@x402/fetch` + `@x402/avm` (`ExactAvmScheme`) — Node key **or** Pera/Lute via `ClientAvmSigner` / `@txnlab/use-wallet` ([guide](https://facilitator.goplausible.xyz/guide)).
+2. MCP `make_http_request_with_x402` against the same URL ([Use x402](https://facilitator.goplausible.xyz/guide/use)).
+
+**Not for first pay:** [Universal Client](https://facilitator.goplausible.xyz/client) Bazaar browse (works only after cataloging).
+
+After settle: confirm USDC in payTo → Bazaar / leaderboard under **X402-GLOBAL-CHALLENGE**.
 
 ## Network / asset / discovery
 
@@ -120,7 +144,7 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
 ## Human next steps (blockers for “done”)
 
 1. ~~payTo documented~~ `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` · ~~HTTPS~~ https://metacampus-x402-verify.vercel.app · ~~unpaid 402~~ green.
-2. **Do now:** one real MainNet settle via GoPlausible (not mock); confirm USDC + Bazaar / leaderboard.
+2. **Do now:** one real MainNet settle via GoPlausible against the known verify URL (not mock; Bazaar browse not required); confirm USDC + Bazaar / leaderboard.
 3. Re-notify Electric Capital / entry with live HTTPS URL if needed + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
 
 ## Demo video
