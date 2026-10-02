@@ -19,7 +19,7 @@ Agents need a machine-payable way to **verify credentials** without API keys or 
 ### Unpaid curl (local or HTTPS)
 
 ```bash
-curl -si -X POST https://YOUR_VERCEL_HOST/v1/credential/verify \
+curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify \
   -H 'Content-Type: application/json' \
   -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
 ```
@@ -78,18 +78,18 @@ Facilitator Doctor, Bazaar refresh, and challenge tracking need a **public HTTPS
 | GitHub link | Connect Vercel GitHub App to `metacampus-org` (empty Hobby team / import 403 = App not linked) |
 | Import | [vercel.com/new](https://vercel.com/new) → `metacampus-org/metacampus-x402-verify` |
 | Env (Production) | See table in [README Deploy](./README.md#deploy): `X402_PAY_TO=I4ZBH6…`, `ALLOW_MOCK_PAYMENT=false`, MainNet, ASA `31566704`, facilitator, tag, `MERCHANT_*` — **no private keys** |
-| Deploy | Use the real `*.vercel.app` host Vercel returns (do not invent URLs) |
+| Deploy | **Live:** [https://metacampus-x402-verify.vercel.app](https://metacampus-x402-verify.vercel.app) |
 | Smoke | Unpaid curl below → **HTTP 402** + tag + payTo |
 
 ### Vercel step-by-step
 
 1. Connect GitHub → Vercel, then [vercel.com/new](https://vercel.com/new) → Import `metacampus-org/metacampus-x402-verify` on Hobby.
 2. Set Production env from the table in [README Deploy](./README.md#deploy) (`X402_PAY_TO`, `ALLOW_MOCK_PAYMENT=false`, MainNet USDC / facilitator / tag / merchant).
-3. Deploy → note the real `https://….vercel.app` URL.
+3. ~~Deploy~~ → live `https://metacampus-x402-verify.vercel.app` (Vercel redeploys from `main`).
 4. Unpaid curl (above) → expect **402** + tag + payTo.
 5. GoPlausible Doctor + one real MainNet settle.
 
-Repo includes `vercel.json` + Express `export default app` (no `listen` on Vercel). Human/CoS creates the Vercel project after GitHub App link; docs are import-ready.
+Repo includes `vercel.json` + Express `export default app` (no `listen` on Vercel) + `trust proxy` so payment-required `resource.url` is https. Human/CoS creates the Vercel project after GitHub App link; docs are import-ready.
 
 Alternatives: Railway / Fly — see README. `Dockerfile` / `Procfile` unchanged.
 
@@ -102,13 +102,13 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
 3. Update / re-notify with the live HTTPS verify URL if the form needs it: https://algorand.co/blog/the-x402-global-challenge-is-live-how-to-build-submit-your-entry
 4. Materials:
    - Repo: `https://github.com/metacampus-org/metacampus-x402-verify`
-   - Public HTTPS verify URL (Vercel — pending deploy)
+   - Public HTTPS verify URL: https://metacampus-x402-verify.vercel.app
    - Demo video: https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view (Metacampus.mp4)
 
 ## Human next steps (blockers for “done”)
 
 1. ~~Document MainNet `X402_PAY_TO`~~ → `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` (confirm USDC opt-in).
-2. ~~HTTPS deploy instructions~~ → create Vercel project from this repo + set env (not grok.me).
+2. ~~HTTPS~~ → https://metacampus-x402-verify.vercel.app (Hobby). Marketing site remains grok.me only.
 3. Complete **one real settle** (not mock) via GoPlausible; confirm USDC + Bazaar listing.
 4. Attach live HTTPS URL to Electric Capital / entry follow-up + [demo video](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
 
