@@ -163,11 +163,19 @@ Needs a public **HTTPS** API URL for facilitator Doctor, Bazaar refresh, and cha
 
 > **Marketing site ≠ API host.** https://metacampus-on-algorand.grok.me is the product / landing site only. It does **not** serve `POST /v1/credential/verify`. Deploy this repo to **Vercel** (or Railway/Fly) for the paid API.
 
-Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts` (skips `listen` when `VERCEL` is set) + [`vercel.json`](./vercel.json) (`maxDuration` 60s).
+Repo wiring for Vercel is already in tree: `export default app` in `src/index.ts` (skips `listen` when `VERCEL` is set) + [`vercel.json`](./vercel.json) (`maxDuration` 60s — **Hobby-safe**; Hobby allows up to 300s).
+
+**Hobby free-tier checklist (before Import works):**
+
+1. On Vercel, connect the **GitHub App** to `metacampus-org` (or the account that owns the repo). Empty Hobby team / `create_git_project` 403 usually means GitHub is not linked yet.
+2. Import `metacampus-org/metacampus-x402-verify` on Hobby (no Pro features required).
+3. Set Production env from the table below (`ALLOW_MOCK_PAYMENT=false`; **no private keys**).
+4. Deploy → use the real `*.vercel.app` URL Vercel prints (do not invent one).
+5. Unpaid smoke curl → expect **402** (commands below).
 
 ### Vercel (recommended — one-click from GitHub)
 
-1. Open [vercel.com/new](https://vercel.com/new) and **Import** `metacampus-org/metacampus-x402-verify` (GitHub).
+1. Open [vercel.com/new](https://vercel.com/new) (Hobby) and **Import** `metacampus-org/metacampus-x402-verify` — requires GitHub↔Vercel connected first.
 2. Framework preset: leave default / Other. Root directory: `.` Build Command: `npm run build` (or leave Vercel auto). Output is unused for this Express entry — Vercel runs `src/index.ts` as a Function.
 3. **Environment Variables** (Production) — paste before first deploy:
 
