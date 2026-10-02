@@ -23,7 +23,7 @@ Unpaid requests receive **HTTP 402** with x402 `paymentRequirements` (Algorand M
 
 **Live HTTPS API:** [https://metacampus-x402-verify.vercel.app](https://metacampus-x402-verify.vercel.app)  
 **Merchant payTo (public):** `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE`  
-**Status:** Competition-ready for visibility — unpaid **402** smoke is green. **One real MainNet GoPlausible settle** remains open (then Bazaar / leaderboard).
+**Status:** Competition-ready for visibility — unpaid **402** smoke is green. **One real MainNet GoPlausible settle** remains open (Bazaar listing follows that settle — see [Unlisted first settle](#unlisted-first-settle-bazaar-not-required)).
 
 ```bash
 # Health (free) — returns url + payTo when configured
@@ -68,88 +68,3 @@ npm run build
 npm start
 # or: npm run dev
 ```
-
-Health (free):
-
-```bash
-curl -s http://localhost:4021/health | jq
-```
-
-### Unpaid → HTTP 402
-
-```bash
-curl -si -X POST http://localhost:4021/v1/credential/verify \
-  -H 'Content-Type: application/json' \
-  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
-```
-
-Expect `HTTP/1.1 402 Payment Required` and a JSON body with x402 payment requirements (`scheme: exact`, MainNet network, USDC amount, `payTo`, `extra.tag: x402-global-challenge`, Bazaar extensions).
-
-### Paid (local mock only)
-
-For local smoke tests without chain:
-
-```bash
-# .env → ALLOW_MOCK_PAYMENT=true
-curl -s -X POST http://localhost:4021/v1/credential/verify \
-  -H 'Content-Type: application/json' \
-  -H 'X-PAYMENT: mock' \
-  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01","credentialId":"cred_1"}' | jq
-```
-
-**Never commit private keys.** Keep `AVM_PRIVATE_KEY` in local/CI secrets only.
-
-Full API, env table, Vercel/Railway/Fly deploy steps, Bazaar, and Electric Capital notes: see [SUBMISSION.md](./SUBMISSION.md) (competition-ready) and continue below.
-
-### Paid (real x402 client)
-
-Use an `@x402/fetch` client with an Algorand signer funded in USDC against https://metacampus-x402-verify.vercel.app — guide: https://facilitator.goplausible.xyz/guide
-
-## API
-
-### `POST /v1/credential/verify` (paid)
-
-Request: `{ "hash": "…", "credentialId"?: "…", "issuerId"?: "…", "txRef"?: "…" }`
-
-Response (scaffold): `{ valid, hash, anchoredHash, txId, network, verifiedAt, … }` — `valid: false` includes `reason`.
-
-### `GET /health` (free)
-
-Service config summary (no secrets). Live responses include public `url` (https) and `payTo` when set — same on `GET /`.
-
-## Environment
-
-See [`.env.example`](./.env.example). Key Production vars: `X402_PAY_TO`, `ALLOW_MOCK_PAYMENT=false`, `ALGORAND_NETWORK=mainnet`, `USDC_ASA=31566704`, `FACILITATOR_URL`, `X402_CHALLENGE_TAG`, `X402_PRICE_USDC`, `MERCHANT_*`. **No private keys** in git or Vercel env.
-
-## Deploy
-
-**Marketing site ≠ API host.** https://metacampus-on-algorand.grok.me is landing only. API: **https://metacampus-x402-verify.vercel.app**
-
-Repo wiring: `export default app` + skip `listen` on `VERCEL`, `trust proxy`, [`vercel.json`](./vercel.json) `maxDuration: 60` (Hobby-safe).
-
-**Smoke (unpaid → 402):**
-
-```bash
-curl -si -X POST https://metacampus-x402-verify.vercel.app/v1/credential/verify \
-  -H 'Content-Type: application/json' \
-  -d '{"hash":"a1b2c3d4e5f6789012345678abcdef01"}'
-```
-
-Then GoPlausible Doctor + **one** real MainNet settle. Details: [SUBMISSION.md](./SUBMISSION.md).
-
-## Exact next human steps
-
-1. Confirm payTo `I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE` opted into USDC `31566704`.
-2. ~~HTTPS~~ live · ~~unpaid 402~~ green.
-3. One real paid settle via GoPlausible → USDC + Bazaar / leaderboard.
-4. Re-notify Electric Capital with live HTTPS URL if needed + [demo](https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view).
-
-## License
-
-MIT — see [LICENSE](./LICENSE).
-
-## References
-
-- https://facilitator.goplausible.xyz/guide
-- https://algorand.co/global-x402-challenge
-- https://docs.x402.org/core-concepts/network-and-token-support
