@@ -17,6 +17,11 @@ The GoPlausible guide does **not** ask you to run your own facilitator node. The
 - No `x402-global-challenge` tag on this route
 - If the env is unset, the path returns **404** and the MainNet route is unchanged
 
+## Preview access (before you pay)
+
+1. Vercel Authentication on Preview returns **401** / a sign-in redirect until that protection is opened for the TestNet client (or disabled for that Preview). Opening it is a Vercel project setting — not a code change.
+2. Even after auth is open, `POST /v1/testnet/credential/verify` stays **404** until Preview has `X402_TESTNET_PAY_TO` set to a public TestNet merchant address (never the MainNet `I4ZBH6…` payTo).
+
 ## What you do for one TestNet payment
 
 1. Create a TestNet buyer account (Pera TestNet, or a key that never leaves your machine).
