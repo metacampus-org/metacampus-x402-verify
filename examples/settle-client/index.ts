@@ -23,6 +23,9 @@ config();
 /** Full MainNet CAIP-2 as returned by our live 402 (not the truncated @x402/avm short form). */
 const MAINNET =
   "algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=" as const;
+/** Full TestNet CAIP-2 from the GoPlausible guide. */
+const TESTNET =
+  "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=" as const;
 
 const DEFAULT_VERIFY_URL =
   "https://metacampus-x402-verify.vercel.app/v1/credential/verify";
@@ -55,17 +58,36 @@ function resolvePrivateKeyBase64(): string {
 }
 
 async function main(): Promise<void> {
-  const verifyUrl = process.env.VERIFY_URL?.trim() || DEFAULT_VERIFY_URL;
+  const testnet = (process.env.X402_NETWORK || "").toLowerCase() === "testnet";
+  const verifyUrl =
+    process.env.VERIFY_URL?.trim() ||
+    (testnet ? "" : DEFAULT_VERIFY_URL);
+  if (testnet && !verifyUrl) {
+    throw new Error(
+      "TestNet settle needs VERIFY_URL set to the Preview POST /v1/testnet/credential/verify URL. Refusing to call the production MainNet route.",
+    );
+  }
+  if (
+    testnet &&
+    verifyUrl.includes("metacampus-x402-verify.vercel.app") &&
+    !verifyUrl.includes("/v1/testnet/")
+  ) {
+    throw new Error(
+      "Refusing to send a TestNet payment to the production MainNet verify URL.",
+    );
+  }
   const hash = process.env.CREDENTIAL_HASH?.trim() || DEFAULT_HASH;
   const key = resolvePrivateKeyBase64();
+  const network = testnet ? TESTNET : MAINNET;
 
   const signer = toClientAvmSigner(key);
   console.log(`Buyer address: ${signer.address}`);
+  console.log(`network=${testnet ? "testnet" : "mainnet"}`);
   console.log(`POST ${verifyUrl}`);
   console.log(`hash=${hash}`);
 
   const client = new x402Client().register(
-    MAINNET,
+    network,
     new ExactAvmScheme(signer),
   );
   const paidFetch = wrapFetchWithPayment(fetch, client);
