@@ -20,8 +20,9 @@ The GoPlausible guide does **not** ask you to run your own facilitator node. The
 
 ## Preview access (before you pay)
 
-1. Vercel Authentication on Preview returns **401** / a sign-in redirect until that protection is opened for the TestNet client (or disabled for that Preview). Opening it is a Vercel project setting — not a code change.
-2. Even after auth is open, `POST /v1/testnet/credential/verify` stays **404** until Preview has `X402_TESTNET_PAY_TO` set to a public Algorand merchant address that is opted into TestNet USDC ASA `10458941` (the same address string as MainNet payTo is fine when that opt-in exists).
+1. **Do not** put this x402 TestNet route behind Vercel Authentication. Preview protection for this path must stay off so clients hit the app, not a Vercel login. That is a Vercel project setting — not a code change. Do not turn protection back on for this route.
+2. With protection off and `X402_TESTNET_PAY_TO` set, an unauthenticated unpaid `POST /v1/testnet/credential/verify` returns **402** from the app (payment required), not a Vercel **401**.
+3. If Preview `X402_TESTNET_PAY_TO` is unset, the path returns **404**. Production MainNet `POST /v1/credential/verify` stays unchanged.
 
 ## What you do for one TestNet payment
 
