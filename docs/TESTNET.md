@@ -10,17 +10,18 @@ The GoPlausible guide does **not** ask you to run your own facilitator node. The
 
 `POST /v1/testnet/credential/verify`
 
-- Enabled only when **Preview** env `X402_TESTNET_PAY_TO` is a public TestNet address
-- That address must be opted into TestNet USDC ASA **`10458941`**
-- It must **not** be the MainNet payTo
+- Enabled only when **Preview** env `X402_TESTNET_PAY_TO` is a public Algorand address used as the TestNet merchant
+- That address must be opted into TestNet USDC ASA **`10458941`** on TestNet (addresses are network-agnostic; the same string as MainNet `X402_PAY_TO` is allowed when that opt-in is present)
+- Opt-in to ASA `10458941` is what matters, not a different address string
 - No private key or mnemonic in git or Vercel
 - No `x402-global-challenge` tag on this route
 - If the env is unset, the path returns **404** and the MainNet route is unchanged
+- Do not claim the route can settle until the merchant address’s TestNet opt-in to ASA `10458941` is confirmed
 
 ## Preview access (before you pay)
 
 1. Vercel Authentication on Preview returns **401** / a sign-in redirect until that protection is opened for the TestNet client (or disabled for that Preview). Opening it is a Vercel project setting — not a code change.
-2. Even after auth is open, `POST /v1/testnet/credential/verify` stays **404** until Preview has `X402_TESTNET_PAY_TO` set to a public TestNet merchant address (never the MainNet `I4ZBH6…` payTo).
+2. Even after auth is open, `POST /v1/testnet/credential/verify` stays **404** until Preview has `X402_TESTNET_PAY_TO` set to a public Algorand merchant address that is opted into TestNet USDC ASA `10458941` (the same address string as MainNet payTo is fine when that opt-in exists).
 
 ## What you do for one TestNet payment
 
