@@ -36,6 +36,12 @@ export const usdcAsa =
 export const payTo =
   process.env.X402_PAY_TO?.trim() || process.env.AVM_ADDRESS?.trim() || "";
 
+/**
+ * TestNet-only merchant address. Never falls back to MainNet payTo.
+ * Leave unset in Production so the TestNet route stays disabled.
+ */
+export const testnetPayTo = process.env.X402_TESTNET_PAY_TO?.trim() || "";
+
 export const priceUsdc = parseFloat(process.env.X402_PRICE_USDC || "0.01");
 
 /** Atomic USDC amount string for PaymentRequirements.amount */
