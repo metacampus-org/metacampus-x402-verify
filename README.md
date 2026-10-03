@@ -1,3 +1,5 @@
+> **DO NOT USE this branch.** Obsolete duplicate of the unlisted-settle docs. Use `main`, `docs/unlisted-first-settle-v2`, or [PR #2](https://github.com/metacampus-org/metacampus-x402-verify/pull/2). See [DO_NOT_USE.md](./DO_NOT_USE.md).
+
 # metacampus-x402-verify
 
 **metaCAMPUS** paid HTTPS API for agentic **credential verification**, built for the [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge).
