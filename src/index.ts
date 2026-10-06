@@ -152,6 +152,7 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
+    poweredBy: "xAI",
   });
 });
 
@@ -167,6 +168,7 @@ app.get("/", (req, res) => {
     },
     docs: "https://github.com/metacampus-org/metacampus-x402-verify",
     facilitator: facilitatorUrl,
+    poweredBy: "xAI",
     ...(payTo ? { payTo } : {}),
   });
 });
