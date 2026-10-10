@@ -1,6 +1,10 @@
 /**
  * metaCAMPUS x402 paid API
- * Algorand Global x402 Challenge — MainNet USDC via GoPlausible facilitator
+ * Algorand Global x402 Challenge — USDC via GoPlausible facilitator
+ *
+ * Network mode:
+ *   ALGORAND_NETWORK=mainnet|testnet  → primary accept network
+ *   ENABLE_TESTNET_PATH=true          → also accept TestNet USDC (dual-path)
  *
  * Routes:
  *   POST /v1/credential/verify     — credential hash check (USDC)
@@ -30,6 +34,11 @@ import {
   allowMockPayment,
   USDC_DECIMALS,
   MC_TESTNET_ASA,
+  enableTestnetPath,
+  testnetPayTo,
+  testnetNetworkCaip2,
+  testnetUsdcAsa,
+  isMainnet,
 } from "./config.js";
 import { verifyCredential } from "./verify.js";
 import {
@@ -45,15 +54,23 @@ const PLACEHOLDER_PAY_TO =
   "METACAMPUSX402PAYTOPLACEHOLDERAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 const merchantPayTo = payTo || PLACEHOLDER_PAY_TO;
+const testnetMerchantPayTo = testnetPayTo || PLACEHOLDER_PAY_TO;
 
 const facilitator = new HTTPFacilitatorClient({
   url: facilitatorUrl,
 });
 
-const resourceServer = new x402ResourceServer(facilitator).register(
+/** Register primary network; add TestNet when dual-path is on. */
+let resourceServer = new x402ResourceServer(facilitator).register(
   networkCaip2,
   new ExactAvmScheme(),
 );
+if (enableTestnetPath && networkCaip2 !== testnetNetworkCaip2) {
+  resourceServer = resourceServer.register(
+    testnetNetworkCaip2,
+    new ExactAvmScheme(),
+  );
+}
 
 const verifyExampleOutput = {
   valid: true,
@@ -77,8 +94,8 @@ const mcIntentExampleOutput = {
   recordedAt: "2026-01-01T00:00:00.000Z",
 };
 
-/** Shared USDC accept block for all paid routes. */
-function usdcAccept() {
+/** Primary-network USDC accept. */
+function usdcAcceptPrimary() {
   return {
     scheme: "exact" as const,
     network: networkCaip2,
@@ -92,6 +109,36 @@ function usdcAccept() {
       amountAtomic: priceAtomicUnits(),
     },
   };
+}
+
+/** TestNet USDC accept (dual-path only). */
+function usdcAcceptTestnet() {
+  return {
+    scheme: "exact" as const,
+    network: testnetNetworkCaip2,
+    price: priceDollarString(),
+    payTo: testnetMerchantPayTo,
+    extra: {
+      tag: challengeTag,
+      decimals: USDC_DECIMALS,
+      name: "USDC",
+      asa: testnetUsdcAsa,
+      amountAtomic: priceAtomicUnits(),
+    },
+  };
+}
+
+/**
+ * Accept list for paid routes.
+ * - Single-path: primary only
+ * - Dual-path (ENABLE_TESTNET_PATH): primary + TestNet when primary is MainNet
+ * - If primary is already TestNet, only one accept (no duplicate)
+ */
+function usdcAccepts() {
+  const primary = usdcAcceptPrimary();
+  if (!enableTestnetPath) return [primary];
+  if (!isMainnet) return [primary];
+  return [primary, usdcAcceptTestnet()];
 }
 
 function merchantExtension() {
@@ -168,7 +215,7 @@ const mcBazaarExt = declareDiscoveryExtension({
 
 const paidRoutes = {
   "POST /v1/credential/verify": {
-    accepts: [usdcAccept()],
+    accepts: usdcAccepts(),
     description:
       "metaCAMPUS agentic credential verification — pay USDC on Algorand, verify a credential hash",
     mimeType: "application/json",
@@ -178,9 +225,9 @@ const paidRoutes = {
     },
   },
   "POST /v1/mc/transfer-intent": {
-    accepts: [usdcAccept()],
+    accepts: usdcAccepts(),
     description:
-      "metaCAMPUS mC transfer intent — pay USDC on Algorand MainNet; records a TestNet mC (ASA 773957514) transfer intent. Does not move mC on-chain.",
+      "metaCAMPUS mC transfer intent — pay USDC; records a TestNet mC (ASA 773957514) transfer intent. Does not move mC on-chain.",
     mimeType: "application/json",
     extensions: {
       ...mcBazaarExt,
@@ -224,6 +271,14 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
+    testnetPath: enableTestnetPath ? "enabled" : "disabled",
+    ...(enableTestnetPath
+      ? {
+          testnetPayTo: testnetMerchantPayTo,
+          testnetNetwork: testnetNetworkCaip2,
+          testnetUsdcAsa,
+        }
+      : {}),
     mc: {
       network: MC_TESTNET_CAIP2,
       asaId: MC_TESTNET_ASA,
@@ -249,6 +304,7 @@ app.get("/", (req, res) => {
         "POST /v1/mc/transfer-intent (x402 paid USDC; TestNet mC intent)",
     },
     mcAsaId: MC_TESTNET_ASA,
+    testnetPath: enableTestnetPath ? "enabled" : "disabled",
     docs: "https://github.com/metacampus-org/metacampus-x402-verify",
     facilitator: facilitatorUrl,
     poweredBy: "xAI",
@@ -352,6 +408,7 @@ if (!process.env.VERCEL) {
     console.log(`  payTo=${merchantPayTo.slice(0, 8)}…`);
     console.log(`  facilitator=${facilitatorUrl}`);
     console.log(`  tag=${challengeTag}`);
+    console.log(`  testnetPath=${enableTestnetPath ? "enabled" : "disabled"}`);
     console.log(`  mcAsa=${MC_TESTNET_ASA} (transfer-intent only)`);
     if (allowMockPayment) {
       console.log(`  ALLOW_MOCK_PAYMENT=true (X-PAYMENT: mock)`);
