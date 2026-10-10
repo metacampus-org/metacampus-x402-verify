@@ -15,6 +15,10 @@ export const USDC_MAINNET_ASA = "31566704";
 export const USDC_TESTNET_ASA = "10458941";
 export const USDC_DECIMALS = 6;
 
+/** TestNet pilot mC ASA (see metacampus-dao/ASSETS.md). Not a payment asset. */
+export const MC_TESTNET_ASA =
+  process.env.MC_ASA_ID?.trim() || "773957514";
+
 const networkEnv = (process.env.ALGORAND_NETWORK || "mainnet").toLowerCase();
 
 export const isMainnet = networkEnv !== "testnet";
@@ -68,7 +72,7 @@ export const merchant = {
   website: process.env.MERCHANT_WEBSITE || "https://metacampus.org",
   logo: process.env.MERCHANT_LOGO || "",
   categories: (process.env.MERCHANT_CATEGORIES ||
-    "api,algorand,x402,credentials,education")
+    "api,algorand,x402,credentials,education,mc")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
