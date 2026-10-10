@@ -4,12 +4,13 @@
  *
  * Network mode:
  *   ALGORAND_NETWORK=mainnet|testnet  → primary accept network
- *   ENABLE_TESTNET_PATH=true          → also accept TestNet USDC (dual-path)
+ *   ENABLE_TESTNET_PATH=true          → also accept TestNet USDC on primary routes
+ *   X402_TESTNET_PAY_TO              → enables POST /v1/testnet/credential/verify
  *
  * Routes:
- *   POST /v1/credential/verify     — credential hash check (USDC)
- *   POST /v1/mc/transfer-intent    — record mC transfer intent (USDC fee;
- *                                    mC is TestNet pilot ASA, not payment asset)
+ *   POST /v1/credential/verify           — credential hash check (USDC)
+ *   POST /v1/testnet/credential/verify   — TestNet-only verify (opt-in)
+ *   POST /v1/mc/transfer-intent          — mC transfer intent (USDC fee)
  *
  * Unpaid → HTTP 402 with x402 paymentRequirements + Bazaar discovery
  * Paid   → handler result (scaffold / intent record)
@@ -30,6 +31,7 @@ import {
   payTo,
   port,
   testnetPayTo,
+  dualPathTestnetPayTo,
   USDC_TESTNET_ASA,
   priceAtomicUnits,
   priceDollarString,
@@ -38,7 +40,6 @@ import {
   USDC_DECIMALS,
   MC_TESTNET_ASA,
   enableTestnetPath,
-  testnetPayTo,
   testnetNetworkCaip2,
   testnetUsdcAsa,
   isMainnet,
@@ -57,25 +58,23 @@ const PLACEHOLDER_PAY_TO =
   "METACAMPUSX402PAYTOPLACEHOLDERAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 const merchantPayTo = payTo || PLACEHOLDER_PAY_TO;
-const testnetMerchantPayTo = testnetPayTo || PLACEHOLDER_PAY_TO;
+const dualPathMerchantPayTo = dualPathTestnetPayTo || PLACEHOLDER_PAY_TO;
 
 const facilitator = new HTTPFacilitatorClient({
   url: facilitatorUrl,
 });
 
-/**feat/testnet-facilitator-path**/
-const resourceServer = new x402ResourceServer(facilitator)
-  .register(networkCaip2, new ExactAvmScheme())
-  .register(ALGORAND_TESTNET_CAIP2, new ExactAvmScheme());
-
-/** Register primary network; add TestNet when dual-path is on. **/
+/** Register primary network; always register TestNet when dual-path or dedicated TestNet route is on. */
 let resourceServer = new x402ResourceServer(facilitator).register(
   networkCaip2,
   new ExactAvmScheme(),
 );
-if (enableTestnetPath && networkCaip2 !== testnetNetworkCaip2) {
+if (
+  (enableTestnetPath || Boolean(testnetPayTo)) &&
+  networkCaip2 !== ALGORAND_TESTNET_CAIP2
+) {
   resourceServer = resourceServer.register(
-    testnetNetworkCaip2,
+    ALGORAND_TESTNET_CAIP2,
     new ExactAvmScheme(),
   );
 }
@@ -119,13 +118,13 @@ function usdcAcceptPrimary() {
   };
 }
 
-/** TestNet USDC accept (dual-path only). */
+/** TestNet USDC accept (dual-path on primary routes). */
 function usdcAcceptTestnet() {
   return {
     scheme: "exact" as const,
     network: testnetNetworkCaip2,
     price: priceDollarString(),
-    payTo: testnetMerchantPayTo,
+    payTo: dualPathMerchantPayTo,
     extra: {
       tag: challengeTag,
       decimals: USDC_DECIMALS,
@@ -137,10 +136,9 @@ function usdcAcceptTestnet() {
 }
 
 /**
- * Accept list for paid routes.
+ * Accept list for primary paid routes.
  * - Single-path: primary only
  * - Dual-path (ENABLE_TESTNET_PATH): primary + TestNet when primary is MainNet
- * - If primary is already TestNet, only one accept (no duplicate)
  */
 function usdcAccepts() {
   const primary = usdcAcceptPrimary();
@@ -221,7 +219,7 @@ const mcBazaarExt = declareDiscoveryExtension({
   output: { example: mcIntentExampleOutput },
 });
 
-const paidRoutes = {
+const paidRoutes: Record<string, unknown> = {
   "POST /v1/credential/verify": {
     accepts: usdcAccepts(),
     description:
@@ -246,7 +244,7 @@ const paidRoutes = {
 
 /**
  * Separate TestNet route. Uses X402_TESTNET_PAY_TO only — never MainNet payTo.
- * Omitted from the middleware when unset so Production /v1/credential/verify is unchanged.
+ * Omitted when unset so Production /v1/credential/verify is unchanged.
  * No challenge tag: that label is MainNet-only.
  */
 if (testnetPayTo) {
@@ -270,7 +268,7 @@ if (testnetPayTo) {
         "TESTNET ONLY — metaCAMPUS credential verify via GoPlausible facilitator (not the MainNet challenge route)",
       mimeType: "application/json",
       extensions: {
-        ...bazaarExt,
+        ...verifyBazaarExt,
       },
     },
   });
@@ -311,21 +309,20 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
-/**feat/testnet-facilitator-path**/
-    testnetPath: testnetPayTo ? "enabled" : "disabled",
+    testnetPath: enableTestnetPath ? "enabled" : "disabled",
+    testnetRoute: testnetPayTo ? "enabled" : "disabled",
+    ...(enableTestnetPath
+      ? {
+          dualPathTestnetPayTo: dualPathMerchantPayTo,
+          testnetNetwork: testnetNetworkCaip2,
+          testnetUsdcAsa,
+        }
+      : {}),
     ...(testnetPayTo
       ? {
           testnetPayTo,
           testnetNetwork: ALGORAND_TESTNET_CAIP2,
           testnetUsdcAsa: USDC_TESTNET_ASA,
-        }
-      : {}),
-    testnetPath: enableTestnetPath ? "enabled" : "disabled",
-    ...(enableTestnetPath
-      ? {
-          testnetPayTo: testnetMerchantPayTo,
-          testnetNetwork: testnetNetworkCaip2,
-          testnetUsdcAsa,
         }
       : {}),
     mc: {
@@ -337,7 +334,6 @@ app.get("/health", (req, res) => {
       paymentAsset: "USDC",
     },
     poweredBy: "xAI",
-main
   });
 });
 
@@ -350,11 +346,14 @@ app.get("/", (req, res) => {
     endpoints: {
       health: "GET /health",
       verify: "POST /v1/credential/verify (x402 paid, USDC)",
+      testnetVerify:
+        "POST /v1/testnet/credential/verify (x402 paid, TestNet USDC; opt-in)",
       mcTransferIntent:
         "POST /v1/mc/transfer-intent (x402 paid USDC; TestNet mC intent)",
     },
     mcAsaId: MC_TESTNET_ASA,
     testnetPath: enableTestnetPath ? "enabled" : "disabled",
+    testnetRoute: testnetPayTo ? "enabled" : "disabled",
     docs: "https://github.com/metacampus-org/metacampus-x402-verify",
     facilitator: facilitatorUrl,
     poweredBy: "xAI",
@@ -409,16 +408,6 @@ function handleMcIntent(
  * Dev-only mock payment bypass (ALLOW_MOCK_PAYMENT=true).
  * Must respond here and NOT call next() — otherwise paymentMiddleware 402s.
  */
-if (!testnetPayTo) {
-  app.post("/v1/testnet/credential/verify", (_req, res) => {
-    res.status(404).json({
-      ok: false,
-      error:
-        "TestNet path disabled. Set public X402_TESTNET_PAY_TO on a Preview only — not Production, and never a private key. POST /v1/credential/verify stays MainNet.",
-    });
-  });
-}
-
 if (allowMockPayment) {
   app.post("/v1/credential/verify", (req, res, next) => {
     const payment = req.header("X-PAYMENT") || req.header("PAYMENT-SIGNATURE");
@@ -436,6 +425,27 @@ if (allowMockPayment) {
     }
     next();
   });
+  if (testnetPayTo) {
+    app.post("/v1/testnet/credential/verify", (req, res, next) => {
+      const payment =
+        req.header("X-PAYMENT") || req.header("PAYMENT-SIGNATURE");
+      if (payment === "mock") {
+        handleVerify(req, res, "mock-local-settle", ALGORAND_TESTNET_CAIP2);
+        return;
+      }
+      next();
+    });
+  }
+}
+
+if (!testnetPayTo) {
+  app.post("/v1/testnet/credential/verify", (_req, res) => {
+    res.status(404).json({
+      ok: false,
+      error:
+        "TestNet path disabled. Set public X402_TESTNET_PAY_TO on a Preview only — not Production, and never a private key. POST /v1/credential/verify stays MainNet.",
+    });
+  });
 }
 
 app.use(
@@ -449,16 +459,15 @@ app.post("/v1/credential/verify", (req, res) => {
   handleVerify(req, res);
 });
 
+app.post("/v1/mc/transfer-intent", (req, res) => {
+  handleMcIntent(req, res);
+});
+
 if (testnetPayTo) {
   app.post("/v1/testnet/credential/verify", (req, res) => {
     handleVerify(req, res, undefined, ALGORAND_TESTNET_CAIP2);
   });
 }
-=======
-app.post("/v1/mc/transfer-intent", (req, res) => {
-  handleMcIntent(req, res);
-});
-main
 
 /** Default export so Vercel detects Express at `src/index.ts`. */
 export default app;
@@ -477,6 +486,7 @@ if (!process.env.VERCEL) {
     console.log(`  facilitator=${facilitatorUrl}`);
     console.log(`  tag=${challengeTag}`);
     console.log(`  testnetPath=${enableTestnetPath ? "enabled" : "disabled"}`);
+    console.log(`  testnetRoute=${testnetPayTo ? "enabled" : "disabled"}`);
     console.log(`  mcAsa=${MC_TESTNET_ASA} (transfer-intent only)`);
     if (allowMockPayment) {
       console.log(`  ALLOW_MOCK_PAYMENT=true (X-PAYMENT: mock)`);
