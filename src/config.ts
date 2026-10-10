@@ -42,26 +42,25 @@ export const payTo =
   process.env.X402_PAY_TO?.trim() || process.env.AVM_ADDRESS?.trim() || "";
 
 /**
-feat/testnet-facilitator-path
- * TestNet-only merchant address. Never falls back to MainNet payTo.
- * Leave unset in Production so the TestNet route stays disabled.
- */
-export const testnetPayTo = process.env.X402_TESTNET_PAY_TO?.trim() || "";
-=======
- * Dual-path switch: when true, 402 responses also accept TestNet USDC
- * even if primary ALGORAND_NETWORK is mainnet (or the reverse is primary).
- * Off by default so production MainNet stays single-accept.
+ * Dual-path switch: when true, primary paid routes also accept TestNet USDC
+ * even if ALGORAND_NETWORK is mainnet. Off by default on production MainNet.
  */
 export const enableTestnetPath =
   (process.env.ENABLE_TESTNET_PATH || "false").toLowerCase() === "true";
 
-/** TestNet payTo (defaults to same public address as primary payTo). */
+/**
+ * Dedicated TestNet merchant address for POST /v1/testnet/credential/verify.
+ * Never falls back to MainNet payTo. Leave unset so that route stays off.
+ */
 export const testnetPayTo =
+  process.env.X402_TESTNET_PAY_TO?.trim() || "";
+
+/** Dual-path TestNet payTo (accept list). Falls back to primary payTo. */
+export const dualPathTestnetPayTo =
   process.env.X402_TESTNET_PAY_TO?.trim() || payTo;
 
 export const testnetNetworkCaip2: Caip2Network = ALGORAND_TESTNET_CAIP2;
 export const testnetUsdcAsa = USDC_TESTNET_ASA;
-
 
 export const priceUsdc = parseFloat(process.env.X402_PRICE_USDC || "0.01");
 
@@ -107,7 +106,7 @@ export function assertPayToConfigured(): void {
       "[x402] X402_PAY_TO / AVM_ADDRESS not set — 402 responses use a placeholder payTo. Set a merchant address before real settlements.",
     );
   }
-  if (enableTestnetPath && !testnetPayTo) {
+  if (enableTestnetPath && !dualPathTestnetPayTo) {
     console.warn(
       "[x402] ENABLE_TESTNET_PATH=true but no TestNet payTo — set X402_TESTNET_PAY_TO or X402_PAY_TO.",
     );
