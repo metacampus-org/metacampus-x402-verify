@@ -42,6 +42,12 @@ export const payTo =
   process.env.X402_PAY_TO?.trim() || process.env.AVM_ADDRESS?.trim() || "";
 
 /**
+feat/testnet-facilitator-path
+ * TestNet-only merchant address. Never falls back to MainNet payTo.
+ * Leave unset in Production so the TestNet route stays disabled.
+ */
+export const testnetPayTo = process.env.X402_TESTNET_PAY_TO?.trim() || "";
+=======
  * Dual-path switch: when true, 402 responses also accept TestNet USDC
  * even if primary ALGORAND_NETWORK is mainnet (or the reverse is primary).
  * Off by default so production MainNet stays single-accept.
@@ -55,6 +61,7 @@ export const testnetPayTo =
 
 export const testnetNetworkCaip2: Caip2Network = ALGORAND_TESTNET_CAIP2;
 export const testnetUsdcAsa = USDC_TESTNET_ASA;
+
 
 export const priceUsdc = parseFloat(process.env.X402_PRICE_USDC || "0.01");
 

@@ -22,12 +22,15 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import {
   assertPayToConfigured,
   challengeTag,
+  ALGORAND_TESTNET_CAIP2,
   facilitatorUrl,
   host,
   merchant,
   networkCaip2,
   payTo,
   port,
+  testnetPayTo,
+  USDC_TESTNET_ASA,
   priceAtomicUnits,
   priceDollarString,
   usdcAsa,
@@ -60,7 +63,12 @@ const facilitator = new HTTPFacilitatorClient({
   url: facilitatorUrl,
 });
 
-/** Register primary network; add TestNet when dual-path is on. */
+/**feat/testnet-facilitator-path**/
+const resourceServer = new x402ResourceServer(facilitator)
+  .register(networkCaip2, new ExactAvmScheme())
+  .register(ALGORAND_TESTNET_CAIP2, new ExactAvmScheme());
+
+/** Register primary network; add TestNet when dual-path is on. **/
 let resourceServer = new x402ResourceServer(facilitator).register(
   networkCaip2,
   new ExactAvmScheme(),
@@ -236,6 +244,38 @@ const paidRoutes = {
   },
 };
 
+/**
+ * Separate TestNet route. Uses X402_TESTNET_PAY_TO only — never MainNet payTo.
+ * Omitted from the middleware when unset so Production /v1/credential/verify is unchanged.
+ * No challenge tag: that label is MainNet-only.
+ */
+if (testnetPayTo) {
+  Object.assign(paidRoutes, {
+    "POST /v1/testnet/credential/verify": {
+      accepts: [
+        {
+          scheme: "exact" as const,
+          network: ALGORAND_TESTNET_CAIP2,
+          price: priceDollarString(),
+          payTo: testnetPayTo,
+          extra: {
+            decimals: USDC_DECIMALS,
+            name: "USDC",
+            asa: USDC_TESTNET_ASA,
+            amountAtomic: priceAtomicUnits(),
+          },
+        },
+      ],
+      description:
+        "TESTNET ONLY — metaCAMPUS credential verify via GoPlausible facilitator (not the MainNet challenge route)",
+      mimeType: "application/json",
+      extensions: {
+        ...bazaarExt,
+      },
+    },
+  });
+}
+
 const app = express();
 
 // Vercel / reverse proxies terminate TLS; needed so x402 resource.url is https://
@@ -271,6 +311,15 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
+/**feat/testnet-facilitator-path**/
+    testnetPath: testnetPayTo ? "enabled" : "disabled",
+    ...(testnetPayTo
+      ? {
+          testnetPayTo,
+          testnetNetwork: ALGORAND_TESTNET_CAIP2,
+          testnetUsdcAsa: USDC_TESTNET_ASA,
+        }
+      : {}),
     testnetPath: enableTestnetPath ? "enabled" : "disabled",
     ...(enableTestnetPath
       ? {
@@ -288,6 +337,7 @@ app.get("/health", (req, res) => {
       paymentAsset: "USDC",
     },
     poweredBy: "xAI",
+main
   });
 });
 
@@ -316,10 +366,11 @@ function handleVerify(
   req: express.Request,
   res: express.Response,
   paymentTxId?: string,
+  network: string = networkCaip2,
 ): void {
   const result = verifyCredential(req.body, {
     paymentTxId,
-    network: networkCaip2,
+    network,
   });
 
   if (
@@ -358,6 +409,16 @@ function handleMcIntent(
  * Dev-only mock payment bypass (ALLOW_MOCK_PAYMENT=true).
  * Must respond here and NOT call next() — otherwise paymentMiddleware 402s.
  */
+if (!testnetPayTo) {
+  app.post("/v1/testnet/credential/verify", (_req, res) => {
+    res.status(404).json({
+      ok: false,
+      error:
+        "TestNet path disabled. Set public X402_TESTNET_PAY_TO on a Preview only — not Production, and never a private key. POST /v1/credential/verify stays MainNet.",
+    });
+  });
+}
+
 if (allowMockPayment) {
   app.post("/v1/credential/verify", (req, res, next) => {
     const payment = req.header("X-PAYMENT") || req.header("PAYMENT-SIGNATURE");
@@ -388,9 +449,16 @@ app.post("/v1/credential/verify", (req, res) => {
   handleVerify(req, res);
 });
 
+if (testnetPayTo) {
+  app.post("/v1/testnet/credential/verify", (req, res) => {
+    handleVerify(req, res, undefined, ALGORAND_TESTNET_CAIP2);
+  });
+}
+=======
 app.post("/v1/mc/transfer-intent", (req, res) => {
   handleMcIntent(req, res);
 });
+main
 
 /** Default export so Vercel detects Express at `src/index.ts`. */
 export default app;
