@@ -311,7 +311,7 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
-feat/testnet-facilitator-path
+/**feat/testnet-facilitator-path**/
     testnetPath: testnetPayTo ? "enabled" : "disabled",
     ...(testnetPayTo
       ? {
