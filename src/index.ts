@@ -1,9 +1,18 @@
 /**
- * metaCAMPUS x402 paid credential verification API
- * Algorand Global x402 Challenge — MainNet USDC via GoPlausible facilitator
+ * metaCAMPUS x402 paid API
+ * Algorand Global x402 Challenge — USDC via GoPlausible facilitator
+ *
+ * Network mode:
+ *   ALGORAND_NETWORK=mainnet|testnet  → primary accept network
+ *   ENABLE_TESTNET_PATH=true          → also accept TestNet USDC (dual-path)
+ *
+ * Routes:
+ *   POST /v1/credential/verify     — credential hash check (USDC)
+ *   POST /v1/mc/transfer-intent    — record mC transfer intent (USDC fee;
+ *                                    mC is TestNet pilot ASA, not payment asset)
  *
  * Unpaid → HTTP 402 with x402 paymentRequirements + Bazaar discovery
- * Paid   → mock credential verify (scaffold; wire registry later)
+ * Paid   → handler result (scaffold / intent record)
  */
 import express from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
@@ -27,8 +36,20 @@ import {
   usdcAsa,
   allowMockPayment,
   USDC_DECIMALS,
+  MC_TESTNET_ASA,
+  enableTestnetPath,
+  testnetPayTo,
+  testnetNetworkCaip2,
+  testnetUsdcAsa,
+  isMainnet,
 } from "./config.js";
 import { verifyCredential } from "./verify.js";
+import {
+  buildMcTransferIntent,
+  MC_NAME,
+  MC_TESTNET_CAIP2,
+  MC_UNIT,
+} from "./mc.js";
 
 assertPayToConfigured();
 
@@ -36,14 +57,29 @@ const PLACEHOLDER_PAY_TO =
   "METACAMPUSX402PAYTOPLACEHOLDERAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 const merchantPayTo = payTo || PLACEHOLDER_PAY_TO;
+const testnetMerchantPayTo = testnetPayTo || PLACEHOLDER_PAY_TO;
 
 const facilitator = new HTTPFacilitatorClient({
   url: facilitatorUrl,
 });
 
+feat/testnet-facilitator-path
 const resourceServer = new x402ResourceServer(facilitator)
   .register(networkCaip2, new ExactAvmScheme())
   .register(ALGORAND_TESTNET_CAIP2, new ExactAvmScheme());
+=======
+/** Register primary network; add TestNet when dual-path is on. */
+let resourceServer = new x402ResourceServer(facilitator).register(
+  networkCaip2,
+  new ExactAvmScheme(),
+);
+if (enableTestnetPath && networkCaip2 !== testnetNetworkCaip2) {
+  resourceServer = resourceServer.register(
+    testnetNetworkCaip2,
+    new ExactAvmScheme(),
+  );
+}
+main
 
 const verifyExampleOutput = {
   valid: true,
@@ -53,8 +89,92 @@ const verifyExampleOutput = {
   verifiedAt: "2026-01-01T00:00:00.000Z",
 };
 
-/** POST body discovery (bodyType required so method enum is POST/PUT/PATCH). */
-const bazaarExt = declareDiscoveryExtension({
+const mcIntentExampleOutput = {
+  ok: true,
+  intent: "mc-transfer",
+  networkMc: MC_TESTNET_CAIP2,
+  mcAsaId: MC_TESTNET_ASA,
+  mcUnitName: MC_UNIT,
+  mcName: MC_NAME,
+  to: "I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE",
+  amount: 1,
+  paymentAsset: "USDC",
+  status: "intent_recorded",
+  recordedAt: "2026-01-01T00:00:00.000Z",
+};
+
+/** Primary-network USDC accept. */
+function usdcAcceptPrimary() {
+  return {
+    scheme: "exact" as const,
+    network: networkCaip2,
+    price: priceDollarString(),
+    payTo: merchantPayTo,
+    extra: {
+      tag: challengeTag,
+      decimals: USDC_DECIMALS,
+      name: "USDC",
+      asa: usdcAsa,
+      amountAtomic: priceAtomicUnits(),
+    },
+  };
+}
+
+/** TestNet USDC accept (dual-path only). */
+function usdcAcceptTestnet() {
+  return {
+    scheme: "exact" as const,
+    network: testnetNetworkCaip2,
+    price: priceDollarString(),
+    payTo: testnetMerchantPayTo,
+    extra: {
+      tag: challengeTag,
+      decimals: USDC_DECIMALS,
+      name: "USDC",
+      asa: testnetUsdcAsa,
+      amountAtomic: priceAtomicUnits(),
+    },
+  };
+}
+
+/**
+ * Accept list for paid routes.
+ * - Single-path: primary only
+ * - Dual-path (ENABLE_TESTNET_PATH): primary + TestNet when primary is MainNet
+ * - If primary is already TestNet, only one accept (no duplicate)
+ */
+function usdcAccepts() {
+  const primary = usdcAcceptPrimary();
+  if (!enableTestnetPath) return [primary];
+  if (!isMainnet) return [primary];
+  return [primary, usdcAcceptTestnet()];
+}
+
+function merchantExtension() {
+  return {
+    "x402-merchant": {
+      info: {
+        name: merchant.name,
+        website: merchant.website,
+        ...(merchant.logo ? { logo: merchant.logo } : {}),
+        categories: merchant.categories,
+      },
+      schema: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string" },
+          website: { type: "string" },
+          logo: { type: "string" },
+          categories: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+  };
+}
+
+const verifyBazaarExt = declareDiscoveryExtension({
   bodyType: "json",
   input: {
     hash: "a1b2c3d4e5f6789012345678abcdef01",
@@ -74,47 +194,53 @@ const bazaarExt = declareDiscoveryExtension({
   output: { example: verifyExampleOutput },
 });
 
+const mcBazaarExt = declareDiscoveryExtension({
+  bodyType: "json",
+  input: {
+    to: "I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE",
+    amount: 1,
+    from: "I4ZBH6RZRTFQN6DSTYJESIGK4VPSMDTXSXJEYEVBADVDQFSOQR4OV55BVE",
+    note: "pilot transfer",
+  },
+  inputSchema: {
+    type: "object",
+    properties: {
+      to: {
+        type: "string",
+        description: "TestNet recipient address (must opt in to mC ASA)",
+      },
+      amount: {
+        type: "integer",
+        description: "Whole mC units (decimals=0)",
+        minimum: 1,
+      },
+      from: { type: "string", description: "Optional sender address" },
+      note: { type: "string", description: "Optional note (max 128 chars)" },
+    },
+    required: ["to", "amount"],
+  },
+  output: { example: mcIntentExampleOutput },
+});
+
 const paidRoutes = {
   "POST /v1/credential/verify": {
-    accepts: [
-      {
-        scheme: "exact" as const,
-        network: networkCaip2,
-        price: priceDollarString(),
-        payTo: merchantPayTo,
-        extra: {
-          tag: challengeTag,
-          decimals: USDC_DECIMALS,
-          name: "USDC",
-          asa: usdcAsa,
-          amountAtomic: priceAtomicUnits(),
-        },
-      },
-    ],
+    accepts: usdcAccepts(),
     description:
       "metaCAMPUS agentic credential verification — pay USDC on Algorand, verify a credential hash",
     mimeType: "application/json",
     extensions: {
-      ...bazaarExt,
-      "x402-merchant": {
-        info: {
-          name: merchant.name,
-          website: merchant.website,
-          ...(merchant.logo ? { logo: merchant.logo } : {}),
-          categories: merchant.categories,
-        },
-        schema: {
-          $schema: "https://json-schema.org/draft/2020-12/schema",
-          type: "object",
-          required: ["name"],
-          properties: {
-            name: { type: "string" },
-            website: { type: "string" },
-            logo: { type: "string" },
-            categories: { type: "array", items: { type: "string" } },
-          },
-        },
-      },
+      ...verifyBazaarExt,
+      ...merchantExtension(),
+    },
+  },
+  "POST /v1/mc/transfer-intent": {
+    accepts: usdcAccepts(),
+    description:
+      "metaCAMPUS mC transfer intent — pay USDC; records a TestNet mC (ASA 773957514) transfer intent. Does not move mC on-chain.",
+    mimeType: "application/json",
+    extensions: {
+      ...mcBazaarExt,
+      ...merchantExtension(),
     },
   },
 };
@@ -186,6 +312,7 @@ app.get("/health", (req, res) => {
     facilitator: facilitatorUrl,
     challengeTag,
     allowMockPayment,
+feat/testnet-facilitator-path
     testnetPath: testnetPayTo ? "enabled" : "disabled",
     ...(testnetPayTo
       ? {
@@ -194,6 +321,25 @@ app.get("/health", (req, res) => {
           testnetUsdcAsa: USDC_TESTNET_ASA,
         }
       : {}),
+=======
+    testnetPath: enableTestnetPath ? "enabled" : "disabled",
+    ...(enableTestnetPath
+      ? {
+          testnetPayTo: testnetMerchantPayTo,
+          testnetNetwork: testnetNetworkCaip2,
+          testnetUsdcAsa,
+        }
+      : {}),
+    mc: {
+      network: MC_TESTNET_CAIP2,
+      asaId: MC_TESTNET_ASA,
+      unit: MC_UNIT,
+      name: MC_NAME,
+      role: "transfer-intent-only",
+      paymentAsset: "USDC",
+    },
+    poweredBy: "xAI",
+main
   });
 });
 
@@ -205,10 +351,15 @@ app.get("/", (req, res) => {
     url: base,
     endpoints: {
       health: "GET /health",
-      verify: "POST /v1/credential/verify (x402 paid)",
+      verify: "POST /v1/credential/verify (x402 paid, USDC)",
+      mcTransferIntent:
+        "POST /v1/mc/transfer-intent (x402 paid USDC; TestNet mC intent)",
     },
+    mcAsaId: MC_TESTNET_ASA,
+    testnetPath: enableTestnetPath ? "enabled" : "disabled",
     docs: "https://github.com/metacampus-org/metacampus-x402-verify",
     facilitator: facilitatorUrl,
+    poweredBy: "xAI",
     ...(payTo ? { payTo } : {}),
   });
 });
@@ -230,6 +381,25 @@ function handleVerify(
       result.reason?.startsWith("Invalid hash") ||
       result.reason?.includes("JSON object"))
   ) {
+    res.status(400).json(result);
+    return;
+  }
+
+  res.status(200).json(result);
+}
+
+function handleMcIntent(
+  req: express.Request,
+  res: express.Response,
+  paymentTxId?: string,
+): void {
+  const result = buildMcTransferIntent(req.body, {
+    paymentTxId,
+    paymentNetwork: networkCaip2,
+    mcAsaId: MC_TESTNET_ASA,
+  });
+
+  if (!result.ok) {
     res.status(400).json(result);
     return;
   }
@@ -260,6 +430,14 @@ if (allowMockPayment) {
     }
     next();
   });
+  app.post("/v1/mc/transfer-intent", (req, res, next) => {
+    const payment = req.header("X-PAYMENT") || req.header("PAYMENT-SIGNATURE");
+    if (payment === "mock") {
+      handleMcIntent(req, res, "mock-local-settle");
+      return;
+    }
+    next();
+  });
 }
 
 app.use(
@@ -273,11 +451,17 @@ app.post("/v1/credential/verify", (req, res) => {
   handleVerify(req, res);
 });
 
+feat/testnet-facilitator-path
 if (testnetPayTo) {
   app.post("/v1/testnet/credential/verify", (req, res) => {
     handleVerify(req, res, undefined, ALGORAND_TESTNET_CAIP2);
   });
 }
+=======
+app.post("/v1/mc/transfer-intent", (req, res) => {
+  handleMcIntent(req, res);
+});
+main
 
 /** Default export so Vercel detects Express at `src/index.ts`. */
 export default app;
@@ -295,6 +479,8 @@ if (!process.env.VERCEL) {
     console.log(`  payTo=${merchantPayTo.slice(0, 8)}…`);
     console.log(`  facilitator=${facilitatorUrl}`);
     console.log(`  tag=${challengeTag}`);
+    console.log(`  testnetPath=${enableTestnetPath ? "enabled" : "disabled"}`);
+    console.log(`  mcAsa=${MC_TESTNET_ASA} (transfer-intent only)`);
     if (allowMockPayment) {
       console.log(`  ALLOW_MOCK_PAYMENT=true (X-PAYMENT: mock)`);
     }

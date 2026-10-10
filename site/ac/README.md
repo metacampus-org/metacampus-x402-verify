@@ -10,3 +10,5 @@ Planned Vercel host, not created yet: `https://metacampus-x402-verify.vercel.app
 - `POST /v1/credential/verify` (expect HTTP 402 until a real settle)
 
 Do not point the marketing site at grok.me for the paid route.
+
+Powered by [xAI](https://x.ai).

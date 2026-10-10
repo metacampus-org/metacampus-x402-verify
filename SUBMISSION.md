@@ -150,3 +150,5 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
 ## Demo video
 
 **Metacampus.mp4:** https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view
+
+Powered by [xAI](https://x.ai).

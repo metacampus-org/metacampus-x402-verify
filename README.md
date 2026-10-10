@@ -182,3 +182,5 @@ MIT — see [LICENSE](./LICENSE).
 - https://facilitator.goplausible.xyz/guide
 - https://algorand.co/global-x402-challenge
 - https://docs.x402.org/core-concepts/network-and-token-support
+
+Powered by xAI
