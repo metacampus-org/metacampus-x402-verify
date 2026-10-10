@@ -63,12 +63,12 @@ const facilitator = new HTTPFacilitatorClient({
   url: facilitatorUrl,
 });
 
-feat/testnet-facilitator-path
+/**feat/testnet-facilitator-path**/
 const resourceServer = new x402ResourceServer(facilitator)
   .register(networkCaip2, new ExactAvmScheme())
   .register(ALGORAND_TESTNET_CAIP2, new ExactAvmScheme());
-=======
-/** Register primary network; add TestNet when dual-path is on. */
+
+/** Register primary network; add TestNet when dual-path is on. **/
 let resourceServer = new x402ResourceServer(facilitator).register(
   networkCaip2,
   new ExactAvmScheme(),
@@ -79,7 +79,6 @@ if (enableTestnetPath && networkCaip2 !== testnetNetworkCaip2) {
     new ExactAvmScheme(),
   );
 }
-main
 
 const verifyExampleOutput = {
   valid: true,
@@ -321,7 +320,6 @@ feat/testnet-facilitator-path
           testnetUsdcAsa: USDC_TESTNET_ASA,
         }
       : {}),
-=======
     testnetPath: enableTestnetPath ? "enabled" : "disabled",
     ...(enableTestnetPath
       ? {
@@ -451,7 +449,6 @@ app.post("/v1/credential/verify", (req, res) => {
   handleVerify(req, res);
 });
 
-feat/testnet-facilitator-path
 if (testnetPayTo) {
   app.post("/v1/testnet/credential/verify", (req, res) => {
     handleVerify(req, res, undefined, ALGORAND_TESTNET_CAIP2);
