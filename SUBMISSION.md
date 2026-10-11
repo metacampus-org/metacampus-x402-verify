@@ -3,7 +3,7 @@
 **Project:** [metacampus-x402-verify](https://github.com/metacampus-org/metacampus-x402-verify)  
 **Challenge:** [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge)  
 **Tag:** `x402-global-challenge` (Bazaar / leaderboard filter: `X402-GLOBAL-CHALLENGE`)
-**Logo:** [metaCAMPUS-logo](https://drive.google.com/file/d/1zptOjZUkmEwFYM3yEqaBJ5sjNp8qYZ7F/view?usp=drivesdk)
+**Logo:** [metaCAMPUS-Logo](https://drive.google.com/file/d/1zptOjZUkmEwFYM3yEqaBJ5sjNp8qYZ7F/view?usp=drivesdk)
 
 ## Competition status
 
@@ -141,6 +141,7 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
    - Repo: `https://github.com/metacampus-org/metacampus-x402-verify`
    - Public HTTPS verify URL: https://metacampus-x402-verify.vercel.app
    - Demo video: https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view (Metacampus.mp4)
+   - Logo: https://drive.google.com/file/d/1zptOjZUkmEwFYM3yEqaBJ5sjNp8qYZ7F/view?usp=drivesdk (metaCAMPUS-logo.jpg)
 
 ## Human next steps (blockers for “done”)
 
@@ -150,6 +151,6 @@ Challenge **form already submitted**. After HTTPS is live and **one** MainNet US
 
 ## Demo video
 
-**Metacampus.mp4:** https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view
+**metaCAMPUS.mp4:** https://drive.google.com/file/d/1G789QVUFMOTKkMTlcoXe3GHM2r7CZGvU/view
 
 Powered by [xAI](https://x.ai).
