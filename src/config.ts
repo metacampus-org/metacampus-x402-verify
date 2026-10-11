@@ -6,6 +6,8 @@ export type Caip2Network = `${string}:${string}`;
 /** Algorand MainNet CAIP-2 (genesis hash). */
 export const ALGORAND_MAINNET_CAIP2 =
   "algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=" as const satisfies Caip2Network;
+export const CHALLENGE_TAG =
+  { tag: "x402-global-challenge" };   // ← the Challenge tag
 
 /** Algorand TestNet CAIP-2. */
 export const ALGORAND_TESTNET_CAIP2 =
