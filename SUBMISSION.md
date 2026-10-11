@@ -3,6 +3,7 @@
 **Project:** [metacampus-x402-verify](https://github.com/metacampus-org/metacampus-x402-verify)  
 **Challenge:** [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge)  
 **Tag:** `x402-global-challenge` (Bazaar / leaderboard filter: `X402-GLOBAL-CHALLENGE`)
+**Logo:** [metaCAMPUS-logo](https://drive.google.com/file/d/1zptOjZUkmEwFYM3yEqaBJ5sjNp8qYZ7F/view?usp=drivesdk)
 
 ## Competition status
 
