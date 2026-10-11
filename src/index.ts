@@ -151,11 +151,11 @@ function merchantExtension() {
   return {
     "x402-merchant": {
       info: {
-        name: merchant.name,
-        website: merchant.website,
-        ...(merchant.logo ? { logo: merchant.logo } : {}),
-        categories: merchant.categories,
-      },
+    name: "metaCAMPUS Credential Verify",
+    website: "https://metacampus-on-algorand.grok.me",
+    logo: "https://drive.google.com/file/d/1zptOjZUkmEwFYM3yEqaBJ5sjNp8qYZ7F/view?usp=drivesdk",
+    categories: ["api", "algorand", "x402", "credentials", "education"],
+  },
       schema: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
         type: "object",
