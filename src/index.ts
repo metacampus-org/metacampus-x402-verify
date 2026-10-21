@@ -45,6 +45,7 @@ import {
   isMainnet,
 } from "./config.js";
 import { verifyCredential } from "./verify.js";
+import { checkMetaBadge, type BadgeGateResult } from "./badge-gate.js";
 import {
   buildMcTransferIntent,
   MC_NAME,
@@ -177,16 +178,20 @@ const verifyBazaarExt = declareDiscoveryExtension({
     hash: "a1b2c3d4e5f6789012345678abcdef01",
     credentialId: "cred_example",
     issuerId: "issuer_example",
+    agentId: "agent_example",
+    attestation: "skill-verified",
   },
   inputSchema: {
     type: "object",
     properties: {
       hash: { type: "string", description: "Credential content hash (hex)" },
       credentialId: { type: "string" },
-      issuerId: { type: "string" },
+      issuerId: { type: "string", description: "Issuer that released the metaBADGE" },
+      agentId: { type: "string", description: "Agent the metaBADGE is assigned to" },
+      attestation: { type: "string", description: "Issuer attestation that the agent has the skill" },
       txRef: { type: "string" },
     },
-    required: ["hash"],
+    required: ["hash", "issuerId", "agentId", "attestation"],
   },
   output: { example: verifyExampleOutput },
 });
@@ -367,9 +372,11 @@ function handleVerify(
   paymentTxId?: string,
   network: string = networkCaip2,
 ): void {
+  const badgeGate = (req as express.Request & { badgeGate?: BadgeGateResult }).badgeGate;
   const result = verifyCredential(req.body, {
     paymentTxId,
     network,
+    badgeGate,
   });
 
   if (
@@ -403,6 +410,47 @@ function handleMcIntent(
 
   res.status(200).json(result);
 }
+
+
+/**
+ * Pre-payment metaBADGE gate.
+ * Must run before paymentMiddleware and before the mock-payment bypass.
+ * Failure returns "unverified" and does not call next() — payment is rejected.
+ * Success attaches badgeGate and continues into the x402 payment path.
+ */
+function badgeGateMiddleware(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+): void {
+  const gate = checkMetaBadge(req.body);
+  (req as express.Request & { badgeGate?: BadgeGateResult }).badgeGate = gate;
+  if (gate.status !== "verified") {
+    res.status(200).json({
+      status: "unverified",
+      valid: false,
+      payment: "rejected",
+      reason: gate.reason,
+      exists: gate.exists,
+      issuerOk: gate.issuerOk,
+      attestationOk: gate.attestationOk,
+      agentOk: gate.agentOk,
+      hash: gate.hash ?? "",
+      credentialId: gate.credentialId,
+      issuerId: gate.issuerId,
+      agentId: gate.agentId,
+      verifiedAt: new Date().toISOString(),
+    });
+    return;
+  }
+  next();
+}
+
+// Gate first on every verify route so a missing/mismatched metaBADGE never
+// reaches settlement. Unpaid requests that pass the gate still get HTTP 402
+// ("unpaid, unverified" until settlement).
+app.post("/v1/credential/verify", badgeGateMiddleware);
+app.post("/v1/testnet/credential/verify", badgeGateMiddleware);
 
 /**
  * Dev-only mock payment bypass (ALLOW_MOCK_PAYMENT=true).
